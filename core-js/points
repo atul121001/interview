@@ -1,0 +1,27 @@
+Topics covered
+1.  Hoisting, let , const , function statement/expression
+2.  Javascript Engine
+3.  call Stack, Web API, Microtask
+4.  Promises
+5.  Async await
+6.  this keyword
+7.  Call, apply, bind
+8.  Closures
+9.  Console type questions
+10.  Prototype Inheritance
+11. Function currying
+12. First Class Functions
+13  Events bubbling, capturing
+14. debouncing
+15  Design Patterns
+16  async,defer,sync in script
+17  filter, reduce, map in javascript
+18  service worker / web worker
+19  performance optimations
+
+
+
+
+Css selectors
+
+1. css selector ==> ~, ^,  *, $
