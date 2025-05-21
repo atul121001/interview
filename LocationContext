@@ -1,0 +1,60 @@
+import React, {
+  createContext,
+  useState,
+  useContext,
+  ReactNode,
+  useMemo,
+} from "react";
+import { LocationNode } from "../components/LocationVisualizer";
+import { locationsData } from "../data/locations";
+
+interface LocationContextType {
+  locations: LocationNode[];
+  selectedLocation: LocationNode | null;
+  selectLocation: (location: LocationNode) => void;
+}
+
+const LocationContext = createContext<LocationContextType>({
+  locations: [],
+  selectedLocation: null,
+  selectLocation: () => {},
+});
+
+interface LocationProviderProps {
+  children: ReactNode;
+}
+
+export const LocationProvider: React.FC<LocationProviderProps> = ({
+  children,
+}) => {
+  const [selectedLocation, setSelectedLocation] = useState<LocationNode | null>(
+    null
+  );
+
+  const selectLocation = (location: LocationNode) => {
+    setSelectedLocation(location);
+  };
+
+  const value = useMemo(
+    () => ({
+      locations: locationsData,
+      selectedLocation,
+      selectLocation,
+    }),
+    [selectedLocation]
+  );
+
+  return (
+    <LocationContext.Provider value={value}>
+      {children}
+    </LocationContext.Provider>
+  );
+};
+
+export const useLocations = (): LocationContextType => {
+  const context = useContext(LocationContext);
+  if (context === undefined) {
+    throw new Error("useLocations must be used within a LocationProvider");
+  }
+  return context;
+};
