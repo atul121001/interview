@@ -1,0 +1,62 @@
+.tree-view-container {
+  width: 100%;
+  background-color: #f0f3f8;
+
+  .tree-item {
+    margin-bottom: 2px;
+
+    .location-name {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 0;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      font-size: 14px;
+      background-color: white;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      width: 100%;
+      text-align: left;
+      border: none;
+      font-family: inherit;
+
+      &:hover {
+        background-color: #f7faff;
+      }
+
+      &.selected {
+        background-color: #c5e0ff;
+      }
+
+      &.has-children {
+        font-weight: normal;
+      }
+
+      .expand-icon {
+        display: inline-block;
+        margin-right: 8px;
+        cursor: pointer;
+        width: 20px;
+        height: 20px;
+        text-align: center;
+        line-height: 20px;
+        color: #333;
+        margin-left: -10px;
+
+        &.expanded {
+          transform: rotate(0deg);
+        }
+
+        span {
+          font-size: 12px;
+          font-weight: bold;
+          display: block;
+        }
+      }
+
+      .location-text {
+        cursor: pointer;
+      }
+    }
+  }
+}
