@@ -1,0 +1,19 @@
+import { useMemo } from 'react';
+import { cssColors } from '../constants/colors';
+
+export interface ColorOption {
+    label: string;
+    value: string;
+}
+
+/**
+ * Custom hook to generate color options from the cssColors constant
+ */
+export const useColorOptions = (): ColorOption[] => {
+    return useMemo(() => {
+        return Object.entries(cssColors).map(([name, value]) => ({
+            label: name,
+            value,
+        }));
+    }, []);
+}; 
