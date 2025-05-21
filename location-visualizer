@@ -1,0 +1,160 @@
+import React, { useState, useRef } from "react";
+import { TreeView } from "../TreeView/index";
+import { locationsData } from "../../data/locations";
+import "./index.scss";
+
+// Dynamic imports for SVG files
+import { ReactComponent as Floor1SVG } from "../../assets/floor1.svg";
+import { ReactComponent as Floor2SVG } from "../../assets/floor2.svg";
+import { ReactComponent as Floor3SVG } from "../../assets/floor3.svg";
+import { ReactComponent as FloorPlanSVG } from "../../assets/floor_plan.svg";
+
+// Import custom hooks
+import { useRotation } from "../../hooks/useRotation";
+import { useSVGColoring } from "../../hooks/useSVGColoring";
+import { useColorOptions, ColorOption } from "../../hooks/useColorOptions";
+
+export interface LocationNode {
+  id: string;
+  name: string;
+  floorplan?: string;
+  children?: LocationNode[];
+}
+
+type SVGComponentType = React.FC<React.SVGProps<SVGSVGElement>>;
+type ShapeType = "rect" | "circle" | "path" | "";
+
+const floorPlanMap: Record<string, SVGComponentType> = {
+  "floor1.svg": Floor1SVG,
+  "floor2.svg": Floor2SVG,
+  "floor3.svg": Floor3SVG,
+  "floor_plan.svg": FloorPlanSVG,
+};
+
+type ShapeTypeLabel = {
+  value: ShapeType;
+  label: string;
+};
+
+const shapeTypeOptions: ShapeTypeLabel[] = [
+  { value: "", label: "All Shapes" },
+  { value: "rect", label: "Rectangles" },
+  { value: "circle", label: "Circles" },
+  { value: "path", label: "Stars" },
+];
+
+interface ControlPanelProps {
+  selectedColor: string;
+  setSelectedColor: (color: string) => void;
+  selectedShapeType: ShapeType;
+  setSelectedShapeType: (type: ShapeType) => void;
+  toggleRotation: () => void;
+  colorOptions: ColorOption[];
+}
+
+const ControlPanel: React.FC<ControlPanelProps> = ({
+  selectedColor,
+  setSelectedColor,
+  selectedShapeType,
+  setSelectedShapeType,
+  toggleRotation,
+  colorOptions,
+}) => (
+  <div className='controls'>
+    <button onClick={toggleRotation} aria-label='Toggle rotation'>
+      Toggle
+    </button>
+    <select
+      value={selectedColor}
+      onChange={(e) => setSelectedColor(e.target.value)}
+      aria-label='Select color'
+    >
+      <option value=''>No color</option>
+      {colorOptions.map((color) => (
+        <option key={color.value} value={color.value}>
+          {color.label}
+        </option>
+      ))}
+    </select>
+    <select
+      value={selectedShapeType}
+      onChange={(e) => setSelectedShapeType(e.target.value as ShapeType)}
+      aria-label='Filter by shape'
+      data-testid='shape-filter'
+    >
+      {shapeTypeOptions.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  </div>
+);
+
+export const LocationVisualizer: React.FC = () => {
+  const [selectedLocation, setSelectedLocation] = useState<LocationNode | null>(
+    null
+  );
+  const [selectedColor, setSelectedColor] = useState<string>("");
+  const [selectedShapeType, setSelectedShapeType] = useState<ShapeType>("");
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  const colorOptions = useColorOptions();
+  const { isRotating, rotationDirection, rotatorRef, toggleRotation } =
+    useRotation();
+
+  useSVGColoring({
+    selectedLocation,
+    selectedColor,
+    selectedShapeType,
+  });
+
+  const handleLocationSelect = (location: LocationNode) => {
+    setSelectedLocation(location);
+  };
+
+  const SVGComponent = selectedLocation?.floorplan
+    ? floorPlanMap[selectedLocation.floorplan]
+    : null;
+
+  return (
+    <div className='location-visualizer' data-testid='svg-implementation'>
+      <div className='header-bar'>
+        <ControlPanel
+          selectedColor={selectedColor}
+          setSelectedColor={setSelectedColor}
+          selectedShapeType={selectedShapeType}
+          setSelectedShapeType={setSelectedShapeType}
+          toggleRotation={toggleRotation}
+          colorOptions={colorOptions}
+        />
+        {selectedLocation && (
+          <div className='selected-location'>
+            <span>Selected: {selectedLocation.name}</span>
+          </div>
+        )}
+      </div>
+      <div className='content-area'>
+        <div className='left-panel'>
+          <TreeView
+            onLocationSelect={handleLocationSelect}
+            locations={locationsData}
+            selectedLocationId={selectedLocation?.id || null}
+          />
+        </div>
+        <div className='right-panel'>
+          <div className='svg-container'>
+            <div
+              ref={rotatorRef}
+              className={`svg-rotator ${
+                isRotating ? `rotating-${rotationDirection}` : ""
+              }`}
+            >
+              {SVGComponent && <SVGComponent ref={svgRef} />}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
