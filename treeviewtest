@@ -1,0 +1,122 @@
+import React from "react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { TreeView } from "./index";
+
+describe("TreeView Component", () => {
+  const mockLocations = [
+    {
+      id: "1",
+      name: "Root",
+      children: [
+        {
+          id: "1-1",
+          name: "Child 1",
+          floorplan: "floor1.svg",
+        },
+        {
+          id: "1-2",
+          name: "Child 2",
+          floorplan: "floor2.svg",
+          children: [
+            {
+              id: "1-2-1",
+              name: "Grandchild",
+              floorplan: "floor3.svg",
+            },
+          ],
+        },
+      ],
+    },
+  ];
+
+  const mockOnLocationSelect = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("renders root locations", () => {
+    render(
+      <TreeView
+        locations={mockLocations}
+        onLocationSelect={mockOnLocationSelect}
+        selectedLocationId={null}
+      />
+    );
+
+    expect(screen.getByText("Root")).toBeInTheDocument();
+  });
+
+  test("expands locations when expand icon is clicked", () => {
+    render(
+      <TreeView
+        locations={mockLocations}
+        onLocationSelect={mockOnLocationSelect}
+        selectedLocationId={null}
+      />
+    );
+
+    // Initially child is not visible
+    expect(screen.queryByText("Child 1")).not.toBeInTheDocument();
+
+    // Click expand icon
+    const expandButton = screen.getByRole("button", {
+      name: /Expand Root/i,
+    });
+    fireEvent.click(expandButton);
+
+    // Now child should be visible
+    expect(screen.getByText("Child 1")).toBeInTheDocument();
+    expect(screen.getByText("Child 2")).toBeInTheDocument();
+  });
+
+  test("calls onLocationSelect when location is clicked", () => {
+    render(
+      <TreeView
+        locations={mockLocations}
+        onLocationSelect={mockOnLocationSelect}
+        selectedLocationId={null}
+      />
+    );
+
+    // First expand to see the child
+    const expandButton = screen.getByRole("button", {
+      name: /Expand Root/i,
+    });
+    fireEvent.click(expandButton);
+
+    // Click the child location
+    fireEvent.click(screen.getByText("Child 1"));
+
+    // Check if onLocationSelect was called with correct location
+    expect(mockOnLocationSelect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "1-1",
+        name: "Child 1",
+        floorplan: "floor1.svg",
+      })
+    );
+  });
+
+  test("highlights selected location", () => {
+    render(
+      <TreeView
+        locations={mockLocations}
+        onLocationSelect={mockOnLocationSelect}
+        selectedLocationId='1-1'
+      />
+    );
+
+    // Expand to see child
+    const expandButton = screen.getByRole("button", {
+      name: /Expand Root/i,
+    });
+    fireEvent.click(expandButton);
+
+    // Find the button that contains the selected location text
+    const locationButton = screen.getByText("Child 1").closest("button");
+
+    // Check that the button has the selected class
+    expect(locationButton).toHaveClass("selected");
+  });
+});
