@@ -1,0 +1,106 @@
+import { useEffect } from 'react';
+import { LocationNode } from '../components/LocationVisualizer';
+import { LOCATION_IDS, STAR_IDS, CIRCLE_IDS, RECTANGLE_IDS } from '../constants/floorplan';
+
+type ShapeType = 'rect' | 'circle' | 'path' | '';
+
+// Map of shape types (element.tagName) to shape type values for filtering
+export const shapeTypeMap: Record<string, ShapeType> = {
+    RECT: 'rect',
+    PATH: 'path',
+    CIRCLE: 'circle',
+};
+
+const getElementShapeType = (element: HTMLElement): ShapeType => {
+    const id = element.id;
+
+    if (STAR_IDS.includes(id)) {
+        return 'path';
+    }
+
+    if (CIRCLE_IDS.includes(id)) {
+        return 'circle';
+    }
+
+    if (RECTANGLE_IDS.includes(id)) {
+        return 'rect';
+    }
+    const tagName = element.tagName.toUpperCase();
+    if (tagName === 'RECT') return 'rect';
+    if (tagName === 'CIRCLE') return 'circle';
+    if (tagName === 'PATH') {
+        return 'path';
+    }
+    if (element.hasAttribute('cx') && element.hasAttribute('cy')) return 'circle';
+    if (element.hasAttribute('width') && element.hasAttribute('height')) return 'rect';
+    if (element.hasAttribute('d')) return 'path';
+
+    console.warn(`Could not determine shape type for element:`, element);
+    return '';
+};
+
+// Debug function to log element details
+const logElementDetails = (element: HTMLElement, id: string, shapeType: string) => {
+    const tagName = element.tagName;
+    const hasCircleAttrs = element.hasAttribute('cx') && element.hasAttribute('cy');
+    const hasPathAttrs = element.hasAttribute('d');
+    const hasRectAttrs = element.hasAttribute('width') && element.hasAttribute('height');
+
+    console.log(
+        `Element ID: ${id}, Type: ${shapeType}, Tag: ${tagName}, ` +
+        `Attrs: ${hasCircleAttrs ? 'circle' : ''}${hasPathAttrs ? 'path' : ''}${hasRectAttrs ? 'rect' : ''}`
+    );
+};
+
+interface SVGColoringOptions {
+    selectedLocation: LocationNode | null;
+    selectedColor: string;
+    selectedShapeType: ShapeType;
+}
+
+/**
+ * Custom hook for handling SVG element coloring based on selected location, color, and shape type
+ */
+export const useSVGColoring = ({
+    selectedLocation,
+    selectedColor,
+    selectedShapeType
+}: SVGColoringOptions): void => {
+    useEffect(() => {
+        if (!selectedLocation?.floorplan) return;
+
+        console.log(`Current shape filter: ${selectedShapeType || 'None'}`);
+
+        LOCATION_IDS.forEach((id) => {
+            const element = document.getElementById(id);
+            if (!element) {
+                console.warn(`Element not found: ${id}`);
+                return;
+            }
+
+            // Get the element's shape type
+            const shapeType = getElementShapeType(element);
+
+            logElementDetails(element, id, shapeType);
+
+            element.removeAttribute('style');
+            if (!selectedShapeType) {
+                if (selectedColor) {
+                    element.setAttribute('fill', selectedColor);
+                } else {
+                    element.setAttribute('fill', '');
+                }
+            } else if (shapeType === selectedShapeType) {
+                if (selectedColor) {
+                    element.setAttribute('fill', selectedColor);
+                    element.style.opacity = '1';
+                } else {
+                    element.setAttribute('fill', '');
+                }
+            } else {
+                element.setAttribute('fill', '');
+                element.style.opacity = '0.2';
+            }
+        });
+    }, [selectedLocation, selectedColor, selectedShapeType]);
+}; 
