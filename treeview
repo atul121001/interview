@@ -1,0 +1,115 @@
+import React, { useState, useCallback, memo } from "react";
+import { LocationNode } from "../LocationVisualizer/index";
+import "./index.scss";
+
+interface TreeViewProps {
+  locations: LocationNode[];
+  onLocationSelect: (location: LocationNode) => void;
+  selectedLocationId: string | null;
+}
+
+interface TreeItemProps {
+  location: LocationNode;
+  level: number;
+  onLocationSelect: (location: LocationNode) => void;
+  selectedLocationId: string | null;
+  expanded: Record<string, boolean>;
+  toggleExpand: (id: string) => void;
+}
+
+const TreeItem = memo(
+  ({
+    location,
+    level,
+    onLocationSelect,
+    selectedLocationId,
+    expanded,
+    toggleExpand,
+  }: TreeItemProps) => {
+    const isSelected = location.id === selectedLocationId;
+    const hasChildren = location.children && location.children.length > 0;
+    const isExpanded = expanded[location.id];
+
+    const handleClick = () => {
+      onLocationSelect(location);
+      if (hasChildren) {
+        toggleExpand(location.id);
+      }
+    };
+
+    return (
+      <div className='tree-item'>
+        <button
+          className={`location-name ${isSelected ? "selected" : ""} ${
+            hasChildren ? "has-children" : ""
+          }`}
+          style={{ paddingLeft: `${level * 16 + 12}px` }}
+          onClick={handleClick}
+          aria-expanded={hasChildren ? isExpanded : undefined}
+          type='button'
+        >
+          {hasChildren && (
+            <span
+              className={`expand-icon${isExpanded ? " expanded" : ""}`}
+              aria-label={`${isExpanded ? "Collapse" : "Expand"} ${
+                location.name
+              }`}
+            >
+              <span>{isExpanded ? "▼" : "▶"}</span>
+            </span>
+          )}
+          <span className='location-text' aria-selected={isSelected}>
+            {location.name}
+          </span>
+        </button>
+        {hasChildren &&
+          isExpanded &&
+          location.children?.map((child) => (
+            <TreeItem
+              key={child.id}
+              location={child}
+              level={level + 1}
+              onLocationSelect={onLocationSelect}
+              selectedLocationId={selectedLocationId}
+              expanded={expanded}
+              toggleExpand={toggleExpand}
+            />
+          ))}
+      </div>
+    );
+  }
+);
+
+TreeItem.displayName = "TreeItem";
+
+export const TreeView: React.FC<TreeViewProps> = ({
+  locations,
+  onLocationSelect,
+  selectedLocationId,
+}) => {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = useCallback((id: string) => {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  }, []);
+
+  return (
+    <div
+      className='tree-view-container'
+      role='tree'
+      aria-label='Location hierarchy'
+    >
+      {locations.map((location) => (
+        <TreeItem
+          key={location.id}
+          location={location}
+          level={0}
+          onLocationSelect={onLocationSelect}
+          selectedLocationId={selectedLocationId}
+          expanded={expanded}
+          toggleExpand={toggleExpand}
+        />
+      ))}
+    </div>
+  );
+};
