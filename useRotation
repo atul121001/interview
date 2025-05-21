@@ -1,0 +1,42 @@
+import { useState, useRef, RefObject } from 'react';
+
+type RotationDirection = 'forward' | 'backward';
+
+interface RotationState {
+    isRotating: boolean;
+    rotationDirection: RotationDirection;
+    rotatorRef: RefObject<HTMLDivElement>;
+    toggleRotation: () => void;
+}
+
+export const useRotation = (): RotationState => {
+    const [isRotating, setIsRotating] = useState<boolean>(false);
+    const [rotationDirection, setRotationDirection] = useState<RotationDirection>('forward');
+    const rotatorRef = useRef<HTMLDivElement>(null);
+
+    const toggleRotation = () => {
+        if (isRotating) {
+            const newDirection = rotationDirection === 'forward' ? 'backward' : 'forward';
+            setRotationDirection(newDirection);
+
+            if (rotatorRef.current) {
+                rotatorRef.current.classList.remove(
+                    'rotating-forward',
+                    'rotating-backward'
+                );
+                const _ = rotatorRef.current.offsetWidth;
+                rotatorRef.current.classList.add(`rotating-${newDirection}`);
+            }
+        } else {
+            setIsRotating(true);
+            setRotationDirection('forward');
+        }
+    };
+
+    return {
+        isRotating,
+        rotationDirection,
+        rotatorRef,
+        toggleRotation
+    };
+}; 
