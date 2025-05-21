@@ -1,0 +1,180 @@
+import React from "react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { LocationVisualizer, LocationNode } from "./index";
+const createForwardRefMock = (testId: string) => {
+  const MockComponent = React.forwardRef<
+    SVGSVGElement,
+    React.SVGProps<SVGSVGElement>
+  >((props, ref) => <svg data-testid={testId} ref={ref} {...props} />);
+  return MockComponent;
+};
+
+// Mock SVG components
+jest.mock("../../assets/floor1.svg", () => ({
+  ReactComponent: createForwardRefMock("floor1-svg"),
+}));
+
+jest.mock("../../assets/floor2.svg", () => ({
+  ReactComponent: createForwardRefMock("floor2-svg"),
+}));
+
+jest.mock("../../assets/floor3.svg", () => ({
+  ReactComponent: createForwardRefMock("floor3-svg"),
+}));
+
+jest.mock("../../assets/floor_plan.svg", () => ({
+  ReactComponent: createForwardRefMock("floor-plan-svg"),
+}));
+
+// Mock the TreeView component
+jest.mock("../TreeView", () => ({
+  TreeView: ({
+    onLocationSelect,
+    locations,
+    selectedLocationId,
+  }: {
+    onLocationSelect: (location: LocationNode) => void;
+    locations: LocationNode[];
+    selectedLocationId: string | null;
+  }) => (
+    <div data-testid='tree-view'>
+      <button
+        data-testid='select-building-a'
+        onClick={() =>
+          onLocationSelect({
+            id: "1-1-1",
+            name: "Building A",
+            floorplan: "floor1.svg",
+          })
+        }
+      >
+        Building A
+      </button>
+      <button
+        data-testid='select-building-b'
+        onClick={() =>
+          onLocationSelect({
+            id: "1-1-2",
+            name: "Building B",
+            floorplan: "floor2.svg",
+          })
+        }
+      >
+        Building B
+      </button>
+    </div>
+  ),
+}));
+
+// Mock hooks - Fix to avoid using document in jest.mock
+// Create mock refs programmatically in the test
+const mockRotatorRef = { current: null as HTMLDivElement | null };
+const mockToggleRotation = jest.fn();
+
+jest.mock("../../hooks/useRotation", () => ({
+  useRotation: () => ({
+    isRotating: false,
+    rotationDirection: "forward",
+    rotatorRef: mockRotatorRef,
+    toggleRotation: mockToggleRotation,
+  }),
+}));
+
+jest.mock("../../hooks/useSVGColoring", () => ({
+  useSVGColoring: jest.fn(),
+  shapeTypeMap: {
+    rect: "Rectangles",
+    circle: "Circles",
+    path: "Stars",
+  },
+}));
+
+jest.mock("../../hooks/useColorOptions", () => ({
+  useColorOptions: () => [
+    { value: "red", label: "Red" },
+    { value: "blue", label: "Blue" },
+  ],
+}));
+
+describe("LocationVisualizer Component", () => {
+  // Mock getElementById for SVG elements
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    // Set up refs after render
+    mockRotatorRef.current = document.createElement("div");
+
+    // Simple mock for getElementById
+    document.getElementById = jest.fn().mockReturnValue({
+      setAttribute: jest.fn(),
+      getAttribute: jest.fn(),
+      tagName: "rect",
+    });
+
+    // Mock querySelector for rotation
+    document.querySelector = jest.fn().mockReturnValue({
+      style: { transform: "", transition: "" },
+    } as unknown as Element);
+  });
+
+  test("renders header bar with controls", () => {
+    render(<LocationVisualizer />);
+    expect(screen.getByText("Toggle")).toBeInTheDocument();
+    const colorDropdowns = screen.getAllByRole("combobox");
+    expect(colorDropdowns.length).toBe(2); // One for color, one for shape type
+  });
+
+  test("renders location tree view", () => {
+    render(<LocationVisualizer />);
+    expect(screen.getByTestId("tree-view")).toBeInTheDocument();
+  });
+
+  test("should display correct SVG when a building is selected", () => {
+    render(<LocationVisualizer />);
+    expect(screen.queryByTestId("floor1-svg")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("select-building-a"));
+    expect(screen.getByTestId("floor1-svg")).toBeInTheDocument();
+    expect(screen.queryByTestId("floor2-svg")).not.toBeInTheDocument();
+    expect(screen.getByText("Selected: Building A")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("select-building-b"));
+    expect(screen.getByTestId("floor2-svg")).toBeInTheDocument();
+    expect(screen.queryByTestId("floor1-svg")).not.toBeInTheDocument();
+    expect(screen.getByText("Selected: Building B")).toBeInTheDocument();
+  });
+
+  test("toggle rotation should be called when button is clicked", () => {
+    render(<LocationVisualizer />);
+    const toggleButton = screen.getByText("Toggle");
+    fireEvent.click(toggleButton);
+    expect(mockToggleRotation).toHaveBeenCalled();
+  });
+
+  test("should change shape filter selection", () => {
+    render(<LocationVisualizer />);
+
+    // Find the shape filter dropdown
+    const shapeFilter = screen.getByTestId("shape-filter");
+
+    // Change selection to Rectangles
+    fireEvent.change(shapeFilter, { target: { value: "rect" } });
+
+    // Check that the selection changed
+    expect((shapeFilter as HTMLSelectElement).value).toBe("rect");
+  });
+
+  test("should change color selection", () => {
+    render(<LocationVisualizer />);
+
+    // Find the color dropdown (first combobox)
+    const colorDropdowns = screen.getAllByRole("combobox");
+    const colorDropdown = colorDropdowns[0];
+
+    // Change selection to Red
+    fireEvent.change(colorDropdown, { target: { value: "red" } });
+
+    // Check that the selection changed
+    expect((colorDropdown as HTMLSelectElement).value).toBe("red");
+  });
+});
